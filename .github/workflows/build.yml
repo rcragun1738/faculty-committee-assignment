@@ -1,77 +1,62 @@
-name: Build Cross-Platform Installers
+name: Build Installers
 
 on:
   push:
     branches:
       - main
-  workflow_dispatch:  # Allows manual trigger from GitHub
+  workflow_dispatch:
 
 jobs:
-  build:
-    strategy:
-      matrix:
-        include:
-          - os: ubuntu-latest
-            platform: linux
-          - os: windows-latest
-            platform: windows
-          - os: macos-latest
-            platform: mac
-
-    runs-on: ${{ matrix.os }}
-
+  build-linux:
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Install system dependencies (Linux only)
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential libssl-dev libffi-dev python3
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '18'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build and package
-        run: npm run package:${{ matrix.platform }}
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+      - run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential libssl-dev libffi-dev python3
+      - run: npm ci
+      - run: npm run build
+      - run: npx electron-builder --linux
+      - uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.platform }}-build
-          path: dist/
-          retention-days: 30
+          name: linux-installers
+          path: |
+            dist/*.AppImage
+            dist/*.deb
 
-  create-release:
-    needs: build
-    runs-on: ubuntu-latest
-    if: success()
-
+  build-windows:
+    runs-on: windows-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          path: all-artifacts
-
-      - name: Create Release
-        uses: softprops/action-gh-release@v1
+          node-version: '18'
+      - run: npm ci
+      - run: npm run build
+      - run: npx electron-builder --win
+      - uses: actions/upload-artifact@v4
         with:
-          tag_name: v${{ github.run_number }}
-          files: |
-            all-artifacts/windows-build/*.msi
-            all-artifacts/windows-build/*.exe
-            all-artifacts/mac-build/*.dmg
-            all-artifacts/mac-build/*.zip
-            all-artifacts/linux-build/*.AppImage
-            all-artifacts/linux-build/*.deb
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          name: windows-installers
+          path: |
+            dist/*.msi
+            dist/*.exe
+
+  build-mac:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      - run: npm ci
+      - run: npm run build
+      - run: npx electron-builder --mac
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mac-installers
+          path: |
+            dist/*.dmg
+            dist/*.zip
