@@ -20,36 +20,24 @@ jobs:
           node-version: '24'
           cache: 'npm'
 
-      - name: Check directory structure
-        run: |
-          pwd
-          ls -la
-          ls -la ..
-
       - name: Install system dependencies
         run: sudo apt-get update && sudo apt-get install -y build-essential libssl-dev libffi-dev python3
 
       - name: Install dependencies
-        run: |
-          cd ..
-          npm install --verbose
+        run: npm install
 
-      - name: Build
-        run: |
-          cd ..
-          npm run build --verbose
+      - name: Build app
+        run: npm run build
 
       - name: Build installers
-        run: |
-          cd ..
-          npx electron-builder --linux
+        run: npx electron-builder --linux
 
       - uses: actions/upload-artifact@v4
         with:
           name: linux-installers
           path: |
-            ../dist/*.AppImage
-            ../dist/*.deb
+            dist/*.AppImage
+            dist/*.deb
 
   build-windows:
     runs-on: windows-latest
@@ -61,33 +49,21 @@ jobs:
           node-version: '24'
           cache: 'npm'
 
-      - name: Check directory structure
-        run: |
-          cd
-          dir
-          dir ..
-
       - name: Install dependencies
-        run: |
-          cd ..
-          npm install --verbose
+        run: npm install
 
-      - name: Build
-        run: |
-          cd ..
-          npm run build --verbose
+      - name: Build app
+        run: npm run build
 
       - name: Build installers
-        run: |
-          cd ..
-          npx electron-builder --win
+        run: npx electron-builder --win
 
       - uses: actions/upload-artifact@v4
         with:
           name: windows-installers
           path: |
-            ../dist/*.msi
-            ../dist/*.exe
+            dist/*.msi
+            dist/*.exe
 
   build-mac:
     runs-on: macos-latest
@@ -99,30 +75,18 @@ jobs:
           node-version: '24'
           cache: 'npm'
 
-      - name: Check directory structure
-        run: |
-          pwd
-          ls -la
-          ls -la ..
-
       - name: Install dependencies
-        run: |
-          cd ..
-          npm install --verbose
+        run: npm install
 
-      - name: Build
-        run: |
-          cd ..
-          npm run build --verbose
+      - name: Build app
+        run: npm run build
 
       - name: Build installers
-        run: |
-          cd ..
-          npx electron-builder --mac
+        run: npx electron-builder --mac
 
       - uses: actions/upload-artifact@v4
         with:
           name: mac-installers
           path: |
-            ../dist/*.dmg
-            ../dist/*.zip
+            dist/*.dmg
+            dist/*.zip

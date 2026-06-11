@@ -27,9 +27,12 @@ Thumbs.db
 out/
 release/
 
-# Application data
+# Application data (exported spreadsheets and saved project files)
+# NOTE: Do NOT use a broad "*.json" here — it would ignore package.json,
+# tsconfig.json, and other essential config files needed to build the app.
 *.xlsx
-*.json
+test-project.json
+test-*.json
 
 # Logs
 logs/
