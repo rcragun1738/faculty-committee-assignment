@@ -23,6 +23,14 @@ let mainWindow: BrowserWindow | null = null;
  * Sets up the window with appropriate configuration for the application.
  */
 function createWindow(): void {
+  // Calculate the preload script path
+  // __dirname is dist/main, so we need to construct the correct path to public/preload.js
+  const preloadPath = path.join(__dirname, '../../public/preload.js');
+
+  // Log the path for debugging (will show in console)
+  console.log('Preload script path:', preloadPath);
+  console.log('Preload script exists:', require('fs').existsSync(preloadPath));
+
   // Create the browser window
   mainWindow = new BrowserWindow({
     width: 1400, // Width in pixels
@@ -31,8 +39,8 @@ function createWindow(): void {
     minHeight: 600, // Minimum height
     webPreferences: {
       // Path to preload script that bridges main and renderer processes securely
-      preload: path.join(__dirname, '../public/preload.js'),
-      // Enable sandbox for security
+      preload: preloadPath,
+      // Enable sandbox for security (in dev, use --no-sandbox flag if needed)
       sandbox: true,
       // Disable node integration for security (use IPC instead)
       nodeIntegration: false,

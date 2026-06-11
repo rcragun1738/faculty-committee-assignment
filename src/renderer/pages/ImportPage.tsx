@@ -15,6 +15,7 @@
  */
 
 import React, { useState } from 'react';
+import { v4 as uuidv4 } from 'uuid';
 import { Faculty } from '../../shared/types';
 import { AppStateContextValue } from '../hooks/useAppState';
 
@@ -74,10 +75,22 @@ const ImportPage: React.FC<ImportPageProps> = ({ appState, onComplete }) => {
         appState.addFaculty(faculty);
       });
 
+      // Automatically create committees from the survey
+      // This saves the user from manually entering all committee names
+      result.committees.forEach((committeeName: string) => {
+        appState.addCommittee({
+          id: `committee-${uuidv4()}`,
+          name: committeeName,
+          type: 'appointed', // Default to appointed; user can change to elected if needed
+          description: '',
+          members: [],
+        });
+      });
+
       // Show success message with import statistics
       setImportSuccess(
         `Successfully imported ${result.importedCount} faculty members. ` +
-          `Found ${result.committees.length} committees.` +
+          `Created ${result.committees.length} committees.` +
           (result.warnings.length > 0
             ? ` (${result.warnings.length} warnings - see console)`
             : '')

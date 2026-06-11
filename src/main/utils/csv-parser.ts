@@ -18,6 +18,7 @@
  */
 
 import { parse } from 'csv-parse/sync';
+import { v4 as uuidv4 } from 'uuid';
 import { Faculty, CommitteePreference, ImportResult } from '../../shared/types';
 
 /**
@@ -83,7 +84,6 @@ export function parseQualtricsCsv(csvContent: string): ImportResult {
       // Trim whitespace as Qualtrics sometimes includes extra spaces
       const firstName = (record.firstname || '').trim();
       const lastName = (record.lastname || '').trim();
-      const email = (record.email || '').trim();
       const college = (record.college || '').trim();
 
       // Skip Qualtrics metadata rows (human-readable descriptions and ImportId metadata)
@@ -106,9 +106,10 @@ export function parseQualtricsCsv(csvContent: string): ImportResult {
         continue;
       }
 
-      // Generate a unique ID from firstname and lastname
-      // This ensures consistency across years
-      const id = `${firstName.toLowerCase()}-${lastName.toLowerCase()}`.replace(/\s+/g, '-');
+      // Generate a unique ID using UUID
+      // We use UUID instead of firstname-lastname to handle duplicate names
+      // (e.g., two "Sara Bryson"s would otherwise have the same ID)
+      const id = uuidv4();
 
       // Extract opt-out/exempt status
       const optOutField = record.optout || '';
@@ -160,7 +161,7 @@ export function parseQualtricsCsv(csvContent: string): ImportResult {
         id,
         firstName,
         lastName,
-        email: email || 'not@provided.edu',
+        email: '', // Emails not needed - can be looked up from university directory if needed
         college,
         optOutStatus,
         optOutReason,
@@ -168,10 +169,7 @@ export function parseQualtricsCsv(csvContent: string): ImportResult {
         comments,
       };
 
-      // Add warnings for incomplete data
-      if (!email) {
-        warnings.push(`${firstName} ${lastName}: No email address provided`);
-      }
+      // Add warnings for missing college information
       if (!college) {
         warnings.push(`${firstName} ${lastName}: No college information provided`);
       }

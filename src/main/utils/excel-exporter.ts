@@ -166,8 +166,8 @@ function createCommitteeSheet(
   // Define header columns
   const headers =
     committee.type === 'elected'
-      ? ['Name', 'College', 'Role', 'Term Start', 'Term End', 'Email']
-      : ['Name', 'College', 'Role', 'Email']; // No term columns for appointed
+      ? ['Name', 'College', 'Role', 'Term Start', 'Term End']
+      : ['Name', 'College', 'Role']; // No term columns for appointed
 
   const headerRow = sheet.addRow(headers);
 
@@ -191,14 +191,12 @@ function createCommitteeSheet(
       { width: 15 }, // Role
       { width: 12 }, // Term Start
       { width: 12 }, // Term End
-      { width: 25 }, // Email
     ];
   } else {
     sheet.columns = [
       { width: 25 }, // Name
       { width: 30 }, // College
       { width: 15 }, // Role
-      { width: 25 }, // Email
     ];
   }
 
@@ -215,13 +213,11 @@ function createCommitteeSheet(
             capitalizeRole(member.role),
             member.termStart || '-',
             member.termEnd || '-',
-            faculty.email,
           ]
         : [
             `${faculty.firstName} ${faculty.lastName}`,
             faculty.college,
             capitalizeRole(member.role),
-            faculty.email,
           ];
 
     const row = sheet.addRow(rowData);
