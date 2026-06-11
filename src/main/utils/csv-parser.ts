@@ -86,6 +86,21 @@ export function parseQualtricsCsv(csvContent: string): ImportResult {
       const email = (record.email || '').trim();
       const college = (record.college || '').trim();
 
+      // Skip Qualtrics metadata rows (human-readable descriptions and ImportId metadata)
+      // These appear at the beginning of the export before actual response data
+      // They have labels like "Please enter your first name" or JSON like {"ImportId":"..."} instead of actual names
+      if (
+        firstName.includes('Please') ||
+        firstName.includes('ImportId') ||
+        firstName.includes('{') ||
+        lastName.includes('Please') ||
+        lastName.includes('ImportId') ||
+        lastName.includes('{')
+      ) {
+        // This is a metadata row, skip it
+        continue;
+      }
+
       // Skip empty records (sometimes Qualtrics includes blank rows)
       if (!firstName && !lastName) {
         continue;
