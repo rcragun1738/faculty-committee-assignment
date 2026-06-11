@@ -1,0 +1,193 @@
+/**
+ * Shared TypeScript interfaces used throughout the Faculty Committee Assignment application.
+ * These types are shared between the Electron main process and the React renderer.
+ * This ensures consistency in data structures across the entire application.
+ */
+
+/**
+ * Represents a faculty member.
+ *
+ * Faculty members are imported from the Qualtrics survey CSV or added manually.
+ * Each faculty member has preferences for up to 3 committees and can opt out or be exempt.
+ */
+export interface Faculty {
+  // Unique identifier for this faculty member (typically firstname-lastname or UUID)
+  id: string;
+
+  // Basic contact information
+  firstName: string;
+  lastName: string;
+  email: string;
+
+  // College/department information (used for filtering and organizational purposes)
+  college: string;
+
+  // Committee service status for this academic year
+  // 'wants' = willing to serve on a university committee
+  // 'opted-out' = does not want a committee assignment
+  // 'exempt' = exempt from committee service (e.g., director, sabbatical, etc.)
+  optOutStatus: 'wants' | 'opted-out' | 'exempt';
+
+  // Explanation for opt-out or exempt status (e.g., "On sabbatical", "Director of...")
+  optOutReason: string;
+
+  // Up to 3 committee preferences ranked by priority (from Qualtrics survey)
+  preferences: CommitteePreference[];
+
+  // Additional comments from the faculty member explaining their choices or constraints
+  // (Very valuable information for decision-making during assignment process)
+  comments: string;
+}
+
+/**
+ * Represents a single committee preference for a faculty member.
+ * Faculty can list up to 3 preferences, each with a rank (1st, 2nd, 3rd choice).
+ */
+export interface CommitteePreference {
+  // Rank of this preference: 1 = first choice, 2 = second choice, 3 = third choice
+  rank: 1 | 2 | 3;
+
+  // Name of the preferred committee
+  committeeName: string;
+}
+
+/**
+ * Represents a university committee.
+ * Committees can be elected or appointed, with specific term lengths and member roles.
+ */
+export interface Committee {
+  // Unique identifier for this committee
+  id: string;
+
+  // Human-readable name of the committee (e.g., "Academic Integrity Committee")
+  name: string;
+
+  // Type of committee:
+  // 'elected' = members serve for specified term lengths (e.g., 2 years)
+  // 'appointed' = members serve indefinitely or until manually removed
+  type: 'elected' | 'appointed';
+
+  // Optional description or notes about the committee
+  description: string;
+
+  // List of faculty members currently assigned to this committee
+  members: CommitteeMember[];
+}
+
+/**
+ * Represents a faculty member's assignment to a specific committee.
+ * Tracks their role, term dates (for elected committees), and other metadata.
+ */
+export interface CommitteeMember {
+  // ID of the faculty member assigned to this committee
+  facultyId: string;
+
+  // Role this faculty member has on the committee:
+  // 'member' = regular committee member
+  // 'chair' = committee chair/leader
+  // 'secretary' = committee secretary (records minutes, handles administrative tasks)
+  // 'ex-officio' = serves by virtue of another position, may have different responsibilities
+  role: 'member' | 'chair' | 'secretary' | 'ex-officio';
+
+  // Term start year (academic year format, e.g., 2026 for 2026-2027 academic year)
+  // Optional because appointed committees may not have defined terms
+  termStart?: number;
+
+  // Term end year (academic year format, e.g., 2028 for 2028-2029 academic year)
+  // For elected committees, this indicates when the term expires and the position comes up for re-election
+  termEnd?: number;
+}
+
+/**
+ * Represents the complete state of a committee assignment project.
+ * This is the top-level structure that gets saved to and loaded from JSON files.
+ */
+export interface ProjectState {
+  // Academic year this project is for (e.g., "2026-2027")
+  // Used for organizational purposes and record-keeping
+  academicYear: string;
+
+  // List of all faculty members (including those opted out or exempt)
+  faculty: Faculty[];
+
+  // List of all committees and their member assignments
+  committees: Committee[];
+
+  // Metadata about the project for tracking and historical purposes
+  metadata: ProjectMetadata;
+}
+
+/**
+ * Metadata about a committee assignment project.
+ * Tracks creation/modification dates and references to previous years' projects.
+ */
+export interface ProjectMetadata {
+  // ISO 8601 timestamp of last modification (e.g., "2026-04-15T14:30:00Z")
+  // Used to track when the project was last edited
+  lastModified: string;
+
+  // ISO 8601 timestamp of project creation
+  createdDate: string;
+
+  // Optional file path to the previous year's project
+  // Useful for loading historical data and comparing year-to-year changes
+  previousYearPath?: string;
+
+  // Optional notes or version information for future extensibility
+  notes?: string;
+}
+
+/**
+ * Response object from CSV import operation.
+ * Returned by IPC handler to report import results and any issues encountered.
+ */
+export interface ImportResult {
+  // List of successfully imported faculty
+  faculty: Faculty[];
+
+  // List of committees found in the survey data
+  committees: string[];
+
+  // Array of any warnings or issues encountered during import
+  // (e.g., "Faculty John Doe has no email address")
+  warnings: string[];
+
+  // Number of faculty successfully imported
+  importedCount: number;
+}
+
+/**
+ * Response object from Excel export operation.
+ * Returned by IPC handler to report export success or failure.
+ */
+export interface ExportResult {
+  // True if export was successful, false if there was an error
+  success: boolean;
+
+  // Path to the generated Excel file (if successful)
+  filePath?: string;
+
+  // Error message (if unsuccessful)
+  error?: string;
+
+  // Number of sheets generated in the Excel workbook
+  sheetsCreated?: number;
+}
+
+/**
+ * Response object for save/load operations.
+ * Communicates success or failure of JSON file operations.
+ */
+export interface FileOperationResult {
+  // True if operation was successful
+  success: boolean;
+
+  // Path to the file that was saved/loaded
+  filePath?: string;
+
+  // Error message (if unsuccessful)
+  error?: string;
+
+  // The loaded ProjectState (only for load operations)
+  data?: ProjectState;
+}
