@@ -6,6 +6,9 @@ on:
       - main
   workflow_dispatch:
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build-linux:
     runs-on: ubuntu-latest
@@ -19,11 +22,20 @@ jobs:
           node-version: '24'
           cache: 'npm'
 
-      - run: sudo apt-get update && sudo apt-get install -y build-essential libssl-dev libffi-dev python3
+      - name: Check directory contents
+        run: ls -la
 
-      - run: npm install
-      - run: npm run build
-      - run: npx electron-builder --linux
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y build-essential libssl-dev libffi-dev python3
+
+      - name: Install dependencies
+        run: npm install --verbose
+
+      - name: Build
+        run: npm run build --verbose
+
+      - name: Build installers
+        run: npx electron-builder --linux
 
       - uses: actions/upload-artifact@v4
         with:
@@ -44,9 +56,17 @@ jobs:
           node-version: '24'
           cache: 'npm'
 
-      - run: npm install
-      - run: npm run build
-      - run: npx electron-builder --win
+      - name: Check directory contents
+        run: dir
+
+      - name: Install dependencies
+        run: npm install --verbose
+
+      - name: Build
+        run: npm run build --verbose
+
+      - name: Build installers
+        run: npx electron-builder --win
 
       - uses: actions/upload-artifact@v4
         with:
@@ -67,9 +87,17 @@ jobs:
           node-version: '24'
           cache: 'npm'
 
-      - run: npm install
-      - run: npm run build
-      - run: npx electron-builder --mac
+      - name: Check directory contents
+        run: ls -la
+
+      - name: Install dependencies
+        run: npm install --verbose
+
+      - name: Build
+        run: npm run build --verbose
+
+      - name: Build installers
+        run: npx electron-builder --mac
 
       - uses: actions/upload-artifact@v4
         with:
