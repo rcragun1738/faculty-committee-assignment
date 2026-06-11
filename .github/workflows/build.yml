@@ -61,9 +61,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: windows-installers
-          path: |
-            dist/*.msi
-            dist/*.exe
+          path: dist/*.exe
 
   build-mac:
     runs-on: macos-latest
