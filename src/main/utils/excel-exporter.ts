@@ -82,7 +82,7 @@ function createSummarySheet(
     pattern: 'solid',
     fgColor: { argb: 'FF0284C7' }, // Professional blue color
   };
-  headerRow.alignment = { horizontal: 'center', vertical: 'center' };
+  headerRow.alignment = { horizontal: 'center', vertical: 'middle' };
 
   // Freeze the header row so it stays visible while scrolling
   sheet.views = [{ state: 'frozen', ySplit: 1 }];
@@ -178,7 +178,7 @@ function createCommitteeSheet(
     pattern: 'solid',
     fgColor: { argb: 'FF0284C7' },
   };
-  headerRow.alignment = { horizontal: 'center', vertical: 'center' };
+  headerRow.alignment = { horizontal: 'center', vertical: 'middle' };
 
   // Freeze header
   sheet.views = [{ state: 'frozen', ySplit: 1 }];
@@ -289,7 +289,7 @@ function createFacultySheet(workbook: ExcelJS.Workbook, projectState: ProjectSta
     pattern: 'solid',
     fgColor: { argb: 'FF0284C7' },
   };
-  headerRow.alignment = { horizontal: 'center', vertical: 'center' };
+  headerRow.alignment = { horizontal: 'center', vertical: 'middle' };
 
   // Freeze header
   sheet.views = [{ state: 'frozen', ySplit: 1 }];

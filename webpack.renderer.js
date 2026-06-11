@@ -23,7 +23,7 @@ module.exports = {
       {
         // Process CSS files through PostCSS (for Tailwind) and style-loader
         test: /\.css$/,
-        use: ['style-loader', 'postcss-loader'],
+        use: ['style-loader', 'css-loader', 'postcss-loader'],
       },
     ],
   },
@@ -37,7 +37,6 @@ module.exports = {
     // Generate HTML file that loads our bundled React app
     new HtmlWebpackPlugin({
       template: './public/index.html',
-      favicon: './public/favicon.ico',
     }),
   ],
   devServer: {
