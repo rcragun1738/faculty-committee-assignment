@@ -53,6 +53,38 @@ const ImportPage: React.FC<ImportPageProps> = ({ appState, onComplete }) => {
   });
 
   /**
+   * Handle loading a previous year's project from JSON file
+   */
+  const handleLoadPreviousYear = async () => {
+    try {
+      setImportError(null);
+      setImportSuccess(null);
+
+      // Call Electron IPC to load JSON file
+      const result = await (window as any).electron.loadProject();
+
+      if (!result.success) {
+        setImportError(result.error || 'Failed to load project file');
+        return;
+      }
+
+      if (result.data) {
+        // Replace entire app state with loaded project data
+        appState.updateState(result.data);
+
+        setImportSuccess(
+          `✓ Loaded project from ${result.data.academicYear}. ` +
+          `Faculty: ${result.data.faculty.length}, Committees: ${result.data.committees.length}`
+        );
+      }
+    } catch (error) {
+      setImportError(
+        error instanceof Error ? error.message : 'Failed to load project file'
+      );
+    }
+  };
+
+  /**
    * Handle CSV import by calling IPC handler in main process
    */
   const handleImportCsv = async () => {
@@ -167,18 +199,37 @@ const ImportPage: React.FC<ImportPageProps> = ({ appState, onComplete }) => {
         </p>
       </div>
 
-      {/* Import CSV Section */}
-      <div className="bg-blue-50 dark:bg-blue-900 p-6 rounded-lg border-2 border-blue-200 dark:border-blue-700">
-        <h3 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">
-          Import from Qualtrics CSV
-        </h3>
-        <button
-          onClick={handleImportCsv}
-          disabled={isImporting}
-          className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg font-semibold transition-colors"
-        >
-          {isImporting ? 'Importing...' : 'Select CSV File'}
-        </button>
+      {/* Import Options Section */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Import CSV */}
+        <div className="bg-blue-50 dark:bg-blue-900 p-6 rounded-lg border-2 border-blue-200 dark:border-blue-700">
+          <h3 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">
+            Import from Qualtrics CSV
+          </h3>
+          <button
+            onClick={handleImportCsv}
+            disabled={isImporting}
+            className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg font-semibold transition-colors"
+          >
+            {isImporting ? 'Importing...' : 'Select CSV File'}
+          </button>
+        </div>
+
+        {/* Load Previous Year */}
+        <div className="bg-green-50 dark:bg-green-900 p-6 rounded-lg border-2 border-green-200 dark:border-green-700">
+          <h3 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">
+            Load Previous Year's Project
+          </h3>
+          <button
+            onClick={handleLoadPreviousYear}
+            className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-colors"
+          >
+            Select JSON File
+          </button>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+            Load committee and assignment data from a previous academic year
+          </p>
+        </div>
       </div>
 
       {/* Error message */}
