@@ -275,7 +275,7 @@ function createFacultySheet(workbook: ExcelJS.Workbook, projectState: ProjectSta
   const sheet = workbook.addWorksheet('Faculty');
 
   // Define headers
-  const headers = ['Name', 'College', 'Email', 'Status', 'Assignments', 'Comments'];
+  const headers = ['Name', 'College', 'Status', 'Assignments', 'Comments'];
   const headerRow = sheet.addRow(headers);
 
   // Format header
@@ -294,7 +294,6 @@ function createFacultySheet(workbook: ExcelJS.Workbook, projectState: ProjectSta
   sheet.columns = [
     { width: 25 }, // Name
     { width: 30 }, // College
-    { width: 25 }, // Email
     { width: 15 }, // Status
     { width: 35 }, // Assignments
     { width: 40 }, // Comments
@@ -319,7 +318,6 @@ function createFacultySheet(workbook: ExcelJS.Workbook, projectState: ProjectSta
     const row = sheet.addRow([
       `${faculty.firstName} ${faculty.lastName}`,
       faculty.college,
-      faculty.email,
       status,
       assignments,
       faculty.comments,
@@ -335,7 +333,7 @@ function createFacultySheet(workbook: ExcelJS.Workbook, projectState: ProjectSta
     }
 
     // Wrap text in comments column for long comments
-    row.getCell(6).alignment = { wrapText: true };
+    row.getCell(5).alignment = { wrapText: true };
 
     // Add borders
     row.eachCell((cell) => {
