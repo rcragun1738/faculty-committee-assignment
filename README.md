@@ -48,10 +48,84 @@ This tool streamlines the annual process of assigning faculty to university comm
 
 ### For End Users
 
-Download the installer for your operating system:
-- **Windows**: `Faculty-Committee-Assignment-Setup.msi`
-- **macOS**: `Faculty-Committee-Assignment.dmg`
-- **Linux**: `Faculty-Committee-Assignment.AppImage` or `.deb`
+All installers are published on the **[Releases page](../../releases)** of this
+repository. Open the latest release and download the file for your operating
+system from the **Assets** list.
+
+> **Important — about security warnings:** This app is *not* code-signed (code
+> signing requires paid certificates from Microsoft and Apple). Because of this,
+> Windows and macOS will show a one-time warning the first time you open it. The
+> app is safe; the steps below show how to get past these warnings. You only have
+> to do this **once** — after that it opens normally like any other program.
+
+---
+
+#### 🪟 Windows
+
+1. Download the file ending in **`.exe`** (e.g. `Faculty Committee Assignment Setup 1.0.0.exe`).
+2. Double-click it to run the installer.
+3. You will likely see a blue box titled **"Windows protected your PC"**.
+   This is SmartScreen warning about an unsigned app — it is expected.
+   - Click the **"More info"** link.
+   - Then click the **"Run anyway"** button that appears.
+4. Follow the installer prompts. The app will be added to your Start Menu and
+   (optionally) your desktop.
+
+---
+
+#### 🍎 macOS
+
+1. Download the file ending in **`.dmg`** (e.g. `Faculty Committee Assignment-1.0.0-arm64.dmg`).
+   - Most modern Macs (2020 and later, "Apple Silicon" M1/M2/M3/M4) use the
+     `arm64` file. If you have an older **Intel** Mac and the app won't open,
+     contact the maintainer for an Intel build.
+2. Double-click the `.dmg`, then **drag the app icon into the Applications folder**.
+3. The first time you open it, macOS will say the app
+   **"cannot be opened because Apple cannot check it for malicious software."**
+   This is expected for unsigned apps. To open it:
+   - Go to your **Applications** folder.
+   - **Right-click** (or Control-click) the app icon and choose **"Open"**.
+   - In the dialog that appears, click **"Open"** again.
+   - *(On macOS Sequoia / 15 and later, you may instead need to go to*
+     ***System Settings → Privacy & Security**, scroll down, and click*
+     ***"Open Anyway"** next to the app's name.)*
+4. After this first time, you can open it normally by double-clicking.
+
+---
+
+#### 🐧 Linux
+
+Two options are provided:
+
+**Option A — AppImage (portable, works on most distributions)**
+1. Download the file ending in **`.AppImage`**.
+2. Make it executable (one time):
+   ```bash
+   chmod +x "Faculty Committee Assignment-1.0.0.AppImage"
+   ```
+3. Double-click it, or run it from a terminal:
+   ```bash
+   ./"Faculty Committee Assignment-1.0.0.AppImage"
+   ```
+
+> **Ubuntu 24.04 note:** Ubuntu 24.04 restricts the sandbox that Electron apps
+> use, which can cause the AppImage to fail with a
+> *"SUID sandbox helper ... is not configured correctly"* error. If that happens,
+> launch it with the `--no-sandbox` flag:
+> ```bash
+> ./"Faculty Committee Assignment-1.0.0.AppImage" --no-sandbox
+> ```
+> This is safe — the app only ever loads its own local files and never browses
+> the internet. To make a permanent double-click launcher, create a `.desktop`
+> file whose `Exec=` line includes `--no-sandbox`.
+
+**Option B — .deb (Debian / Ubuntu)**
+1. Download the file ending in **`.deb`**.
+2. Install it:
+   ```bash
+   sudo dpkg -i faculty-committee-assignment_1.0.0_amd64.deb
+   ```
+3. Launch "Faculty Committee Assignment" from your applications menu.
 
 ### For Developers
 
