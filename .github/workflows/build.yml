@@ -88,3 +88,31 @@ jobs:
           path: |
             dist/*.dmg
             dist/*.zip
+
+  # After all three platforms build successfully, gather the installers and
+  # publish them as a GitHub Release so they appear on the repo's "Releases"
+  # page — a permanent, easy-to-find download spot for colleagues.
+  release:
+    needs: [build-linux, build-windows, build-mac]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # required for the workflow to create/update a Release
+    steps:
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Publish Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.0-build${{ github.run_number }}
+          name: Faculty Committee Assignment (build ${{ github.run_number }})
+          body: |
+            Installers for Windows, macOS, and Linux.
+
+            - **Windows:** download the `.exe`, double-click to install.
+            - **macOS:** download the `.dmg`; the first time, right-click the app and choose **Open**.
+            - **Linux:** download the `.AppImage` (portable) or `.deb` (Debian/Ubuntu).
+          make_latest: true
+          files: artifacts/**/*
