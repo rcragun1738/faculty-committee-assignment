@@ -55,7 +55,9 @@
     "appId": "com.university.facultycommittee",
     "productName": "Faculty Committee Assignment",
     "files": [
-      "dist/**/*",
+      "dist/main/**/*",
+      "dist/renderer/**/*",
+      "public/**/*",
       "node_modules/**/*"
     ],
     "directories": {
