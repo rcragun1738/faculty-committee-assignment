@@ -9,7 +9,7 @@ This tool streamlines the annual process of assigning faculty to university comm
 1. **Import survey data** from Qualtrics CSV exports
 2. **Manage faculty** - add, edit, or remove faculty members
 3. **Configure committees** - create committees, set type (elected/appointed), and manage properties
-4. **Assign faculty** - intuitively assign faculty to committees with drag-and-drop or button-based interface
+4. **Assign faculty** - assign faculty to committees with an intuitive click-based interface plus a right-click quick-assign menu
 5. **Export results** - generate professional Excel workbooks and save projects for year-to-year continuity
 
 ## Features
@@ -43,8 +43,8 @@ This tool streamlines the annual process of assigning faculty to university comm
 ## Installation
 
 ### Prerequisites
-- Node.js 16+ and npm 8+
-- Electron 27+
+- Node.js 20+ and npm 10+ (CI builds use Node.js 24)
+- Electron 27+ (installed automatically via `npm install`)
 
 ### For End Users
 
@@ -351,14 +351,14 @@ npm run package:mac
 npm run package:linux
 ```
 
-Installer files are created in the `out` directory.
+Installer files are created in the `dist` directory.
 
 ## Support & Maintenance
 
 ### Common Questions
 
 **Q: How do I load last year's assignments?**
-A: Click "4. Export & Save" → "Continue from Previous Year" (currently manual via JSON file). Load the saved JSON from last year as a starting point.
+A: On the "1. Import Faculty" tab, use **"Load Previous Year's Project" → "Select JSON File"** and choose the JSON you saved last year. It loads that year's faculty and committees as your starting point.
 
 **Q: Can I edit the Excel file after exporting?**
 A: Yes! The Excel file is a standard .xlsx that can be opened in Excel, Google Sheets, LibreOffice, etc. Make edits and save.
