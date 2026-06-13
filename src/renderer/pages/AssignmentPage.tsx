@@ -91,7 +91,7 @@ const EditMemberModal: React.FC<EditMemberModalProps> = ({
                   onChange={(e) => setTermStart(parseInt(e.target.value))}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-800 dark:text-white"
                 >
-                  {Array.from({ length: 10 }, (_, i) => 2026 + i).map((year) => (
+                  {Array.from({ length: 13 }, (_, i) => 2023 + i).map((year) => (
                     <option key={year} value={year}>
                       {year}-{year + 1}
                     </option>
@@ -108,7 +108,7 @@ const EditMemberModal: React.FC<EditMemberModalProps> = ({
                   onChange={(e) => setTermEnd(parseInt(e.target.value))}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-800 dark:text-white"
                 >
-                  {Array.from({ length: 10 }, (_, i) => 2026 + i).map((year) => (
+                  {Array.from({ length: 13 }, (_, i) => 2023 + i).map((year) => (
                     <option key={year} value={year}>
                       {year}-{year + 1}
                     </option>

@@ -14,7 +14,7 @@
  * - Remove faculty (e.g., if deceased or departed)
  */
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { Faculty } from '../../shared/types';
 import { AppStateContextValue } from '../hooks/useAppState';
@@ -51,6 +51,51 @@ const ImportPage: React.FC<ImportPageProps> = ({ appState, onComplete }) => {
     email: '',
     college: '',
   });
+  // Search text used to filter the faculty list below
+  const [facultySearch, setFacultySearch] = useState('');
+  // Ref to the search box so Ctrl+F can focus it
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  /**
+   * Let users press Ctrl+F (or Cmd+F on Mac) to jump to the faculty search box,
+   * matching the "find" shortcut they're used to in other programs.
+   */
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+        searchInputRef.current?.select();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Filter the faculty list by the search text (matches name, college, or status)
+  const query = facultySearch.trim().toLowerCase();
+  const filteredFaculty = query
+    ? appState.state.faculty.filter((f) => {
+        const statusLabel =
+          f.optOutStatus === 'wants'
+            ? 'wants'
+            : f.optOutStatus === 'exempt'
+              ? 'exempt'
+              : 'opted out';
+        const haystack = [
+          f.firstName,
+          f.lastName,
+          `${f.firstName} ${f.lastName}`,
+          f.college,
+          f.email,
+          statusLabel,
+          ...f.preferences.map((p) => p.committeeName),
+        ]
+          .join(' ')
+          .toLowerCase();
+        return haystack.includes(query);
+      })
+    : appState.state.faculty;
 
   /**
    * Handle loading a previous year's project from JSON file
@@ -300,14 +345,39 @@ const ImportPage: React.FC<ImportPageProps> = ({ appState, onComplete }) => {
       {/* Faculty List */}
       <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
         <div className="px-6 py-4 bg-gray-100 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
-          <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
-            Faculty List ({appState.state.faculty.length})
-          </h3>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
+              Faculty List ({query ? `${filteredFaculty.length} of ${appState.state.faculty.length}` : appState.state.faculty.length})
+            </h3>
+            <div className="relative w-full sm:w-72">
+              <input
+                ref={searchInputRef}
+                type="text"
+                value={facultySearch}
+                onChange={(e) => setFacultySearch(e.target.value)}
+                placeholder="Search faculty (Ctrl+F)"
+                className="w-full px-3 py-2 pr-8 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-sm text-gray-800 dark:text-white"
+              />
+              {facultySearch && (
+                <button
+                  onClick={() => setFacultySearch('')}
+                  aria-label="Clear search"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          </div>
         </div>
 
         {appState.state.faculty.length === 0 ? (
           <div className="px-6 py-4 text-gray-600 dark:text-gray-400">
             No faculty imported yet. Import a CSV file or add faculty manually.
+          </div>
+        ) : filteredFaculty.length === 0 ? (
+          <div className="px-6 py-4 text-gray-600 dark:text-gray-400">
+            No faculty match "{facultySearch}".
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -332,7 +402,7 @@ const ImportPage: React.FC<ImportPageProps> = ({ appState, onComplete }) => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-600">
-                {appState.state.faculty.map((faculty, idx) => (
+                {filteredFaculty.map((faculty, idx) => (
                   <tr
                     key={faculty.id}
                     className={idx % 2 === 0 ? '' : 'bg-gray-50 dark:bg-gray-800'}

@@ -58,6 +58,7 @@
       "dist/main/**/*",
       "dist/renderer/**/*",
       "public/**/*",
+      "assets/**/*",
       "node_modules/**/*"
     ],
     "directories": {

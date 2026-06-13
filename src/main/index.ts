@@ -27,6 +27,11 @@ function createWindow(): void {
   // __dirname is dist/main, so we need to construct the correct path to public/preload.js
   const preloadPath = path.join(__dirname, '../../public/preload.js');
 
+  // Path to the application icon (bundled via the "assets" entry in build.files).
+  // Setting this makes the custom icon appear on the window and in the taskbar/
+  // launcher on Linux and Windows. macOS uses the icon baked into the .app bundle.
+  const iconPath = path.join(__dirname, '../../assets/icon.png');
+
   // Log the path for debugging (will show in console)
   console.log('Preload script path:', preloadPath);
   console.log('Preload script exists:', require('fs').existsSync(preloadPath));
@@ -37,6 +42,7 @@ function createWindow(): void {
     height: 900, // Height in pixels
     minWidth: 900, // Minimum width to prevent UI breaking
     minHeight: 600, // Minimum height
+    icon: iconPath, // Custom application icon (window + taskbar/launcher)
     webPreferences: {
       // Path to preload script that bridges main and renderer processes securely
       preload: preloadPath,
