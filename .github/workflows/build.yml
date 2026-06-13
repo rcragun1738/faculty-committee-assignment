@@ -98,6 +98,14 @@ jobs:
     permissions:
       contents: write  # required for the workflow to create/update a Release
     steps:
+      - uses: actions/checkout@v4
+
+      # Read the version straight from package.json so releases are stamped with
+      # whatever "version" is set there. Bump that field to cut a new version.
+      - name: Read version from package.json
+        id: pkg
+        run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+
       - name: Download all build artifacts
         uses: actions/download-artifact@v4
         with:
@@ -106,8 +114,8 @@ jobs:
       - name: Publish Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.0-build${{ github.run_number }}
-          name: Faculty Committee Assignment (build ${{ github.run_number }})
+          tag_name: v${{ steps.pkg.outputs.version }}-build${{ github.run_number }}
+          name: Faculty Committee Assignment v${{ steps.pkg.outputs.version }} (build ${{ github.run_number }})
           body: |
             Installers for Windows, macOS, and Linux.
 
