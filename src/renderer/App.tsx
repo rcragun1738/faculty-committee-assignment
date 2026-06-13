@@ -19,10 +19,12 @@ import React, { useState } from 'react';
 import { useAppState } from './hooks/useAppState';
 import { useTheme } from './hooks/useTheme';
 import { ThemeToggle } from './components/ThemeToggle';
+import SettingsModal from './components/SettingsModal';
 import ImportPage from './pages/ImportPage';
 import CommitteePage from './pages/CommitteePage';
 import AssignmentPage from './pages/AssignmentPage';
 import ExportPage from './pages/ExportPage';
+import { defaultSettings } from '../shared/types';
 
 /**
  * Type for page navigation
@@ -45,6 +47,9 @@ const App: React.FC = () => {
 
   // Track which page is currently displayed
   const [currentPage, setCurrentPage] = useState<PageName>('import');
+
+  // Whether the Settings dialog is open
+  const [showSettings, setShowSettings] = useState(false);
 
   /**
    * Navigate to a different page
@@ -75,10 +80,31 @@ const App: React.FC = () => {
           {/* App title */}
           <h1 className="text-2xl font-bold">Faculty Committee Assignment Tool</h1>
 
-          {/* Theme toggle button */}
-          <ThemeToggle className="ml-4" />
+          <div className="flex items-center gap-2">
+            {/* Settings (gear) button */}
+            <button
+              onClick={() => setShowSettings(true)}
+              aria-label="Open settings"
+              title="Settings"
+              className="ml-4 p-2 rounded-lg hover:bg-blue-600 dark:hover:bg-blue-800 transition-colors text-xl leading-none"
+            >
+              ⚙️
+            </button>
+
+            {/* Theme toggle button */}
+            <ThemeToggle />
+          </div>
         </div>
       </header>
+
+      {/* Settings dialog */}
+      {showSettings && (
+        <SettingsModal
+          settings={appState.state.settings || defaultSettings()}
+          onSave={(updates) => appState.updateSettings(updates)}
+          onClose={() => setShowSettings(false)}
+        />
+      )}
 
       {/* ======================== NAVIGATION ======================== */}
       <nav className="bg-gray-100 dark:bg-gray-800 border-b border-gray-300 dark:border-gray-700 px-4 py-3">

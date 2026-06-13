@@ -16,7 +16,36 @@
  */
 
 import { useState, useCallback } from 'react';
-import { ProjectState, Faculty, Committee, CommitteeMember } from '../../shared/types';
+import {
+  ProjectState,
+  Faculty,
+  Committee,
+  CommitteeMember,
+  ProjectSettings,
+  defaultSettings,
+} from '../../shared/types';
+
+/**
+ * Ensures a project state has all fields the current app version expects.
+ * Older saved project files predate the `settings` object, so we fill in
+ * defaults here when loading them. This keeps load/upgrade seamless.
+ */
+function normalizeState(state: ProjectState): ProjectState {
+  const base = defaultSettings();
+  return {
+    ...state,
+    settings: {
+      serviceYears:
+        state.settings?.serviceYears && state.settings.serviceYears.length > 0
+          ? state.settings.serviceYears
+          : base.serviceYears,
+      roles:
+        state.settings?.roles && state.settings.roles.length > 0
+          ? state.settings.roles
+          : base.roles,
+    },
+  };
+}
 
 /**
  * Hook return type - all state and functions to manipulate it
@@ -24,6 +53,9 @@ import { ProjectState, Faculty, Committee, CommitteeMember } from '../../shared/
 export interface AppStateContextValue {
   state: ProjectState;
   updateState: (newState: ProjectState) => void;
+
+  // Update the project settings (service years, roles)
+  updateSettings: (updates: Partial<ProjectSettings>) => void;
 
   // Faculty operations
   addFaculty: (faculty: Faculty) => void;
@@ -65,6 +97,7 @@ function createEmptyState(academicYear: string): ProjectState {
     academicYear,
     faculty: [],
     committees: [],
+    settings: defaultSettings(),
     metadata: {
       createdDate: new Date().toISOString(),
       lastModified: new Date().toISOString(),
@@ -85,8 +118,31 @@ export function useAppState(
 ): AppStateContextValue {
   // Initialize state with provided data or empty state
   const [state, setState] = useState<ProjectState>(
-    initialState || createEmptyState(academicYear)
+    initialState ? normalizeState(initialState) : createEmptyState(academicYear)
   );
+
+  /**
+   * Replace the entire project state (e.g. when loading a saved file).
+   * Runs the loaded data through normalizeState so older files get any
+   * missing fields (like settings) filled in with defaults.
+   */
+  const updateState = useCallback((newState: ProjectState) => {
+    setState(normalizeState(newState));
+  }, []);
+
+  /**
+   * Update the project settings (service years, roles).
+   */
+  const updateSettings = useCallback((updates: Partial<ProjectSettings>) => {
+    setState((prev) => ({
+      ...prev,
+      settings: { ...defaultSettings(), ...prev.settings, ...updates },
+      metadata: {
+        ...prev.metadata,
+        lastModified: new Date().toISOString(),
+      },
+    }));
+  }, []);
 
   // ==================== Faculty Operations ====================
 
@@ -302,8 +358,10 @@ export function useAppState(
       });
     });
 
-    // Return everyone who isn't assigned yet, regardless of status
-    return state.faculty.filter((f) => !assignedIds.has(f.id));
+    // Return everyone who isn't assigned yet, regardless of status. Faculty
+    // flagged with allowMultiple stay in the pool even after being assigned so
+    // they can be added to additional committees.
+    return state.faculty.filter((f) => f.allowMultiple || !assignedIds.has(f.id));
   }, [state.faculty, state.committees]);
 
   /**
@@ -319,7 +377,8 @@ export function useAppState(
   // Return all state and functions
   return {
     state,
-    updateState: setState,
+    updateState,
+    updateSettings,
     addFaculty,
     updateFaculty,
     removeFaculty,

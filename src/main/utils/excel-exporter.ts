@@ -13,7 +13,30 @@
 
 import * as ExcelJS from 'exceljs';
 import * as path from 'path';
-import { Faculty, Committee, CommitteeMember, ProjectState } from '../../shared/types';
+import { Faculty, Committee, CommitteeMember, ProjectState, SheetOrder } from '../../shared/types';
+
+/**
+ * Returns the committees sorted according to the requested sheet order.
+ * Does not mutate the original array.
+ */
+function orderCommittees(committees: Committee[], order: SheetOrder): Committee[] {
+  const sorted = [...committees];
+  switch (order) {
+    case 'alphabetical':
+      return sorted.sort((a, b) => a.name.localeCompare(b.name));
+    case 'by-type':
+      // Elected committees first, then appointed; alphabetical within each group.
+      return sorted.sort((a, b) => {
+        if (a.type !== b.type) {
+          return a.type === 'elected' ? -1 : 1;
+        }
+        return a.name.localeCompare(b.name);
+      });
+    case 'as-listed':
+    default:
+      return sorted;
+  }
+}
 
 /**
  * Generates an Excel workbook from committee assignment data.
@@ -36,7 +59,8 @@ import { Faculty, Committee, CommitteeMember, ProjectState } from '../../shared/
  */
 export async function exportToExcel(
   projectState: ProjectState,
-  outputPath: string
+  outputPath: string,
+  sheetOrder: SheetOrder = 'as-listed'
 ): Promise<void> {
   // Create a new workbook
   const workbook = new ExcelJS.Workbook();
@@ -45,11 +69,15 @@ export async function exportToExcel(
   const facultyMap = new Map<string, Faculty>();
   projectState.faculty.forEach((f) => facultyMap.set(f.id, f));
 
+  // Order committees once; both the summary rows and the per-committee sheets
+  // follow the same order for consistency.
+  const orderedCommittees = orderCommittees(projectState.committees, sheetOrder);
+
   // Step 1: Create Summary sheet with overview
-  createSummarySheet(workbook, projectState, facultyMap);
+  createSummarySheet(workbook, orderedCommittees, facultyMap);
 
   // Step 2: Create individual committee sheets
-  projectState.committees.forEach((committee) => {
+  orderedCommittees.forEach((committee) => {
     createCommitteeSheet(workbook, committee, projectState, facultyMap);
   });
 
@@ -66,7 +94,7 @@ export async function exportToExcel(
  */
 function createSummarySheet(
   workbook: ExcelJS.Workbook,
-  projectState: ProjectState,
+  committees: Committee[],
   facultyMap: Map<string, Faculty>
 ): void {
   const sheet = workbook.addWorksheet('Summary');
@@ -97,7 +125,7 @@ function createSummarySheet(
   ];
 
   // Add data rows for each committee
-  projectState.committees.forEach((committee, index) => {
+  committees.forEach((committee, index) => {
     // Find the chair and secretary for this committee
     const chair = committee.members.find((m) => m.role === 'chair');
     const secretary = committee.members.find((m) => m.role === 'secretary');

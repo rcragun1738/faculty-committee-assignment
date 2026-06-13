@@ -20,6 +20,7 @@ import {
   ExportResult,
   FileOperationResult,
   ProjectState,
+  SheetOrder,
 } from '../shared/types';
 import { parseQualtricsCsv, validateCsvStructure } from './utils/csv-parser';
 import { saveProject, loadProject, createBackup } from './utils/json-storage';
@@ -86,7 +87,7 @@ export function registerIpcHandlers(mainWindow: Electron.BrowserWindow): void {
    * Generates an Excel workbook from the current project state and saves it.
    * User picks the save location via file dialog.
    */
-  ipcMain.handle('export-excel', async (event, projectState: ProjectState) => {
+  ipcMain.handle('export-excel', async (event, projectState: ProjectState, sheetOrder?: SheetOrder) => {
     try {
       // Open save dialog to let user choose where to save the Excel file
       const { canceled, filePath } = await dialog.showSaveDialog(mainWindow, {
@@ -111,7 +112,7 @@ export function registerIpcHandlers(mainWindow: Electron.BrowserWindow): void {
 
       // Generate the Excel file
       // exportToExcel is async because it writes to disk
-      await exportToExcel(projectState, filePath);
+      await exportToExcel(projectState, filePath, sheetOrder);
 
       return {
         success: true,

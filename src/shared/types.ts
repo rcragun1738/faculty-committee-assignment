@@ -37,6 +37,11 @@ export interface Faculty {
   // Additional comments from the faculty member explaining their choices or constraints
   // (Very valuable information for decision-making during assignment process)
   comments: string;
+
+  // When true, this faculty member may be assigned to more than one committee.
+  // By default faculty leave the assignment pool once assigned to a single
+  // committee; flagging them keeps them available so they can serve on several.
+  allowMultiple?: boolean;
 }
 
 /**
@@ -82,12 +87,10 @@ export interface CommitteeMember {
   // ID of the faculty member assigned to this committee
   facultyId: string;
 
-  // Role this faculty member has on the committee:
-  // 'member' = regular committee member
-  // 'chair' = committee chair/leader
-  // 'secretary' = committee secretary (records minutes, handles administrative tasks)
-  // 'ex-officio' = serves by virtue of another position, may have different responsibilities
-  role: 'member' | 'chair' | 'secretary' | 'ex-officio';
+  // Role this faculty member has on the committee. Common values are 'member',
+  // 'chair', 'secretary', and 'ex-officio', but the list of available roles is
+  // configurable in Settings, so this is stored as a free-form string.
+  role: string;
 
   // Term start year (academic year format, e.g., 2026 for 2026-2027 academic year)
   // Optional because appointed committees may not have defined terms
@@ -96,6 +99,49 @@ export interface CommitteeMember {
   // Term end year (academic year format, e.g., 2028 for 2028-2029 academic year)
   // For elected committees, this indicates when the term expires and the position comes up for re-election
   termEnd?: number;
+}
+
+/**
+ * User-configurable settings for a project (edited via the Settings dialog).
+ * Saved inside the project file so each year's project carries its own setup.
+ */
+export interface ProjectSettings {
+  // Term start/end years offered in the assignment "Edit" dropdowns.
+  // Stored as the starting year of each academic year (e.g. 2025 = 2025-2026).
+  serviceYears: number[];
+
+  // Roles that can be assigned to a committee member. Stored lowercase; the UI
+  // and exports display them capitalized (e.g. 'ex-officio' -> 'Ex-Officio').
+  roles: string[];
+}
+
+/**
+ * Default roles available when a project has no custom roles configured.
+ */
+export const DEFAULT_ROLES: string[] = ['member', 'chair', 'secretary', 'ex-officio'];
+
+/**
+ * Builds the default list of service years: 2023 through five years past the
+ * current year, so prior years are available for mid-stream setups.
+ */
+export function defaultServiceYears(): number[] {
+  const start = 2023;
+  const end = new Date().getFullYear() + 5;
+  const years: number[] = [];
+  for (let year = start; year <= end; year++) {
+    years.push(year);
+  }
+  return years;
+}
+
+/**
+ * Builds the default settings object for a new or upgraded project.
+ */
+export function defaultSettings(): ProjectSettings {
+  return {
+    serviceYears: defaultServiceYears(),
+    roles: [...DEFAULT_ROLES],
+  };
 }
 
 /**
@@ -112,6 +158,11 @@ export interface ProjectState {
 
   // List of all committees and their member assignments
   committees: Committee[];
+
+  // User-configurable settings (service years, roles). Optional for backward
+  // compatibility with project files saved before settings existed; the app
+  // fills in defaults when loading such files.
+  settings?: ProjectSettings;
 
   // Metadata about the project for tracking and historical purposes
   metadata: ProjectMetadata;
@@ -136,6 +187,14 @@ export interface ProjectMetadata {
   // Optional notes or version information for future extensibility
   notes?: string;
 }
+
+/**
+ * How committee sheets should be ordered in the exported Excel workbook.
+ * - 'as-listed'    = committee creation order (default)
+ * - 'alphabetical' = committee name A–Z
+ * - 'by-type'      = grouped by type (elected first, then appointed), A–Z within each group
+ */
+export type SheetOrder = 'as-listed' | 'alphabetical' | 'by-type';
 
 /**
  * Response object from CSV import operation.

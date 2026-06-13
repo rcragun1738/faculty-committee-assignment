@@ -27,6 +27,11 @@ const ExportPage: React.FC<ExportPageProps> = ({ appState }) => {
     message?: string;
   }>({ type: 'idle' });
 
+  // How committee sheets should be ordered in the exported workbook
+  const [sheetOrder, setSheetOrder] = useState<'as-listed' | 'alphabetical' | 'by-type'>(
+    'as-listed'
+  );
+
   /**
    * Handle Excel export
    */
@@ -35,7 +40,7 @@ const ExportPage: React.FC<ExportPageProps> = ({ appState }) => {
       setExportStatus({ type: 'exporting' });
 
       // Call IPC handler to export to Excel
-      const result = await (window as any).electron.exportExcel(appState.state);
+      const result = await (window as any).electron.exportExcel(appState.state, sheetOrder);
 
       if (result.success) {
         setExportStatus({
@@ -160,6 +165,20 @@ const ExportPage: React.FC<ExportPageProps> = ({ appState }) => {
           Generate a professional Excel workbook with one sheet per committee, summary sheet, and
           faculty list. Perfect for printing and distribution to faculty.
         </p>
+        <div className="mb-4 max-w-md">
+          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
+            Sheet order
+          </label>
+          <select
+            value={sheetOrder}
+            onChange={(e) => setSheetOrder(e.target.value as typeof sheetOrder)}
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-sm text-gray-800 dark:text-white"
+          >
+            <option value="as-listed">As listed (creation order)</option>
+            <option value="alphabetical">Alphabetical (A–Z)</option>
+            <option value="by-type">By type (elected first, then appointed)</option>
+          </select>
+        </div>
         <button
           onClick={handleExportExcel}
           disabled={exportStatus.type === 'exporting'}
@@ -230,9 +249,7 @@ const ExportPage: React.FC<ExportPageProps> = ({ appState }) => {
                     .map((m) => {
                       const faculty = appState.getFacultyById(m.facultyId);
                       const rolelabel =
-                        m.role === 'member'
-                          ? ''
-                          : ` (${m.role === 'ex-officio' ? 'ex-officio' : m.role})`;
+                        m.role.toLowerCase() === 'member' ? '' : ` (${m.role})`;
                       return `${faculty?.firstName} ${faculty?.lastName}${rolelabel}`;
                     })
                     .join(', ')}

@@ -28,8 +28,10 @@ contextBridge.exposeInMainWorld('electron', {
    * Shows save dialog and creates formatted Excel file.
    *
    * @param projectState - The complete project state to export
+   * @param sheetOrder - How to order the committee sheets ('as-listed' | 'alphabetical' | 'by-type')
    */
-  exportExcel: (projectState) => ipcRenderer.invoke('export-excel', projectState),
+  exportExcel: (projectState, sheetOrder) =>
+    ipcRenderer.invoke('export-excel', projectState, sheetOrder),
 
   /**
    * Save the current project to a JSON file.

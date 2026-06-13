@@ -10,8 +10,16 @@
  */
 
 import React, { useState } from 'react';
-import { Committee, CommitteeMember } from '../../shared/types';
+import { Committee, CommitteeMember, defaultSettings } from '../../shared/types';
 import { AppStateContextValue } from '../hooks/useAppState';
+
+/** Capitalize a role for display, e.g. 'ex-officio' -> 'Ex-Officio'. */
+function displayRole(role: string): string {
+  return role
+    .split('-')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join('-');
+}
 
 /**
  * Component props
@@ -27,6 +35,8 @@ interface AssignmentPageProps {
 interface EditMemberModalProps {
   committee: Committee;
   member: CommitteeMember;
+  roles: string[];
+  serviceYears: number[];
   onSave: (updates: Partial<CommitteeMember>) => void;
   onClose: () => void;
 }
@@ -38,12 +48,16 @@ interface EditMemberModalProps {
 const EditMemberModal: React.FC<EditMemberModalProps> = ({
   committee,
   member,
+  roles,
+  serviceYears,
   onSave,
   onClose,
 }) => {
   const [role, setRole] = useState<CommitteeMember['role']>(member.role);
-  const [termStart, setTermStart] = useState(member.termStart || 2026);
-  const [termEnd, setTermEnd] = useState(member.termEnd || 2027);
+  const [termStart, setTermStart] = useState(member.termStart || serviceYears[0] || 2026);
+  const [termEnd, setTermEnd] = useState(
+    member.termEnd || serviceYears[1] || (serviceYears[0] || 2026) + 1
+  );
 
   const handleSave = () => {
     onSave({
@@ -69,13 +83,17 @@ const EditMemberModal: React.FC<EditMemberModalProps> = ({
             </label>
             <select
               value={role}
-              onChange={(e) => setRole(e.target.value as CommitteeMember['role'])}
+              onChange={(e) => setRole(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-800 dark:text-white"
             >
-              <option value="member">Regular Member</option>
-              <option value="chair">Chair</option>
-              <option value="secretary">Secretary</option>
-              <option value="ex-officio">Ex-Officio</option>
+              {/* Show the member's current role even if it's no longer in the
+                  configured list, so it isn't silently changed. */}
+              {!roles.includes(role) && <option value={role}>{displayRole(role)}</option>}
+              {roles.map((r) => (
+                <option key={r} value={r}>
+                  {displayRole(r)}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -91,7 +109,7 @@ const EditMemberModal: React.FC<EditMemberModalProps> = ({
                   onChange={(e) => setTermStart(parseInt(e.target.value))}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-800 dark:text-white"
                 >
-                  {Array.from({ length: 13 }, (_, i) => 2023 + i).map((year) => (
+                  {serviceYears.map((year) => (
                     <option key={year} value={year}>
                       {year}-{year + 1}
                     </option>
@@ -108,7 +126,7 @@ const EditMemberModal: React.FC<EditMemberModalProps> = ({
                   onChange={(e) => setTermEnd(parseInt(e.target.value))}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-800 dark:text-white"
                 >
-                  {Array.from({ length: 13 }, (_, i) => 2023 + i).map((year) => (
+                  {serviceYears.map((year) => (
                     <option key={year} value={year}>
                       {year}-{year + 1}
                     </option>
@@ -168,6 +186,11 @@ const AssignmentPage: React.FC<AssignmentPageProps> = ({ appState, onComplete })
   const [statusFilter, setStatusFilter] = useState<'wants' | 'exempt' | 'opted-out' | 'all'>('wants');
   const [committeeSort, setCommitteeSort] = useState<'name' | 'size'>('name');
 
+  // Project settings (roles, service years), with defaults as a fallback
+  const settings = appState.state.settings || defaultSettings();
+  // Role given to a faculty member when first assigned to a committee
+  const defaultRole = settings.roles[0] || 'member';
+
   // Get unassigned faculty (all statuses)
   let unassignedFaculty = appState.getUnassignedFaculty();
 
@@ -219,7 +242,7 @@ const AssignmentPage: React.FC<AssignmentPageProps> = ({ appState, onComplete })
    */
   const handleAssignToCommittee = (committeeId: string) => {
     if (!selectedFacultyId) return;
-    appState.addMemberToCommittee(committeeId, selectedFacultyId, 'member');
+    appState.addMemberToCommittee(committeeId, selectedFacultyId, defaultRole);
     setSelectedFacultyId(null);
   };
 
@@ -266,6 +289,8 @@ const AssignmentPage: React.FC<AssignmentPageProps> = ({ appState, onComplete })
         </h2>
         <p className="text-gray-600 dark:text-gray-400">
           Click faculty name, then click "Assign Selected" button. Right-click for quick menu.
+          Use the <span className="font-semibold">📌 Multi</span> button to let someone serve on
+          more than one committee.
         </p>
       </div>
 
@@ -275,7 +300,7 @@ const AssignmentPage: React.FC<AssignmentPageProps> = ({ appState, onComplete })
         <div className={`bg-white dark:bg-gray-800 rounded-lg border-2 border-gray-200 dark:border-gray-700 overflow-hidden`}>
           <div className="px-6 py-4 bg-gray-100 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
             <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-3">
-              Unassigned Faculty ({unassignedFaculty.length})
+              Faculty to Assign ({unassignedFaculty.length})
             </h3>
             <div className="space-y-2">
               <select
@@ -318,50 +343,97 @@ const AssignmentPage: React.FC<AssignmentPageProps> = ({ appState, onComplete })
             </div>
           ) : (
             <div className="max-h-[500px] overflow-y-auto">
-              {unassignedFaculty.map((faculty) => (
-                <div
-                  key={faculty.id}
-                  className={`px-6 py-4 border-b border-gray-200 dark:border-gray-600 flex justify-between items-start gap-2 transition-colors ${
-                    selectedFacultyId === faculty.id
-                      ? 'bg-blue-100 dark:bg-blue-900'
-                      : 'hover:bg-gray-50 dark:hover:bg-gray-700'
-                  }`}
-                >
+              {unassignedFaculty.map((faculty) => {
+                // How many committees this person is already on, used for the
+                // count badge and the purple "multi-committee" highlight.
+                const assignedCount = appState.getCommitteesByFacultyId(faculty.id).length;
+                const isMulti = assignedCount >= 2;
+                const isSelected = selectedFacultyId === faculty.id;
+                return (
                   <div
-                    onClick={() => setSelectedFacultyId(faculty.id)}
-                    onContextMenu={(e) => handleContextMenu(e, faculty.id)}
-                    className="cursor-pointer flex-1"
+                    key={faculty.id}
+                    className={`px-6 py-4 border-b border-gray-200 dark:border-gray-600 flex justify-between items-start gap-2 transition-colors ${
+                      isSelected
+                        ? 'bg-blue-100 dark:bg-blue-900'
+                        : isMulti
+                          ? 'bg-purple-50 dark:bg-purple-900/40 hover:bg-purple-100 dark:hover:bg-purple-900/60'
+                          : 'hover:bg-gray-50 dark:hover:bg-gray-700'
+                    }`}
                   >
-                    <div className="font-semibold text-gray-800 dark:text-white">
-                      {faculty.firstName} {faculty.lastName}
-                    </div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400">
-                      {faculty.college}
-                    </div>
-                    {faculty.optOutStatus !== 'wants' && (
-                      <div className="text-xs font-semibold text-amber-600 dark:text-amber-400 mt-1">
-                        {faculty.optOutStatus === 'exempt' ? 'Exempt' : 'Opted out'}
-                        {faculty.optOutReason ? ` — ${faculty.optOutReason}` : ''}
+                    <div
+                      onClick={() => setSelectedFacultyId(faculty.id)}
+                      onContextMenu={(e) => handleContextMenu(e, faculty.id)}
+                      className="cursor-pointer flex-1"
+                    >
+                      <div className="font-semibold text-gray-800 dark:text-white">
+                        {faculty.firstName} {faculty.lastName}
                       </div>
-                    )}
-                    {faculty.preferences.length > 0 && (
-                      <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                        Prefers: {faculty.preferences.map((p) => p.committeeName).join(', ')}
+                      <div className="text-sm text-gray-600 dark:text-gray-400">
+                        {faculty.college}
                       </div>
-                    )}
+                      {assignedCount > 0 && (
+                        <div
+                          className={`inline-block text-xs font-semibold mt-1 px-2 py-0.5 rounded ${
+                            isMulti
+                              ? 'bg-purple-600 text-white'
+                              : 'bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-100'
+                          }`}
+                        >
+                          On {assignedCount} committee{assignedCount !== 1 ? 's' : ''}
+                        </div>
+                      )}
+                      {faculty.optOutStatus !== 'wants' && (
+                        <div className="text-xs font-semibold text-amber-600 dark:text-amber-400 mt-1">
+                          {faculty.optOutStatus === 'exempt' ? 'Exempt' : 'Opted out'}
+                          {faculty.optOutReason ? ` — ${faculty.optOutReason}` : ''}
+                        </div>
+                      )}
+                      {faculty.preferences.length > 0 && (
+                        <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                          Prefers: {faculty.preferences.map((p) => p.committeeName).join(', ')}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-shrink-0 flex flex-col gap-1 items-stretch">
+                      {/* Toggle whether this person may serve on multiple committees.
+                          When on, they stay in this list after being assigned. */}
+                      <button
+                        onClick={() =>
+                          appState.updateFaculty(faculty.id, {
+                            allowMultiple: !faculty.allowMultiple,
+                          })
+                        }
+                        title={
+                          faculty.allowMultiple
+                            ? 'Allowed on multiple committees — click to restrict to one'
+                            : 'Allow this person on multiple committees'
+                        }
+                        className={`px-2 py-1 rounded text-xs font-semibold border ${
+                          faculty.allowMultiple
+                            ? 'bg-purple-600 text-white border-purple-600 hover:bg-purple-700'
+                            : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600'
+                        }`}
+                      >
+                        📌 Multi
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (
+                            confirm(
+                              `Remove ${faculty.firstName} ${faculty.lastName} from this list?`
+                            )
+                          ) {
+                            appState.removeFaculty(faculty.id);
+                          }
+                        }}
+                        className="px-2 py-1 bg-red-500 text-white rounded text-xs hover:bg-red-600"
+                      >
+                        Remove
+                      </button>
+                    </div>
                   </div>
-                  <button
-                    onClick={() => {
-                      if (confirm(`Remove ${faculty.firstName} ${faculty.lastName} from this list?`)) {
-                        appState.removeFaculty(faculty.id);
-                      }
-                    }}
-                    className="flex-shrink-0 px-2 py-1 bg-red-500 text-white rounded text-xs hover:bg-red-600"
-                  >
-                    Remove
-                  </button>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -435,7 +507,7 @@ const AssignmentPage: React.FC<AssignmentPageProps> = ({ appState, onComplete })
                                   {faculty?.firstName} {faculty?.lastName}
                                 </div>
                                 <div className="text-xs text-gray-600 dark:text-gray-400">
-                                  {member.role}
+                                  {displayRole(member.role)}
                                 </div>
                               </div>
                               <div className="flex gap-1">
@@ -484,7 +556,7 @@ const AssignmentPage: React.FC<AssignmentPageProps> = ({ appState, onComplete })
               <button
                 key={c.id}
                 onClick={() => {
-                  appState.addMemberToCommittee(c.id, contextMenu.facultyId, 'member');
+                  appState.addMemberToCommittee(c.id, contextMenu.facultyId, defaultRole);
                   setContextMenu(null);
                 }}
                 className="block w-full text-left px-3 py-1 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-white"
@@ -506,6 +578,8 @@ const AssignmentPage: React.FC<AssignmentPageProps> = ({ appState, onComplete })
         <EditMemberModal
           committee={appState.state.committees.find((c) => c.id === editingMember.committeeId)!}
           member={editingMember.member}
+          roles={settings.roles}
+          serviceYears={settings.serviceYears}
           onSave={(updates) =>
             handleUpdateMember(editingMember.committeeId, updates)
           }
