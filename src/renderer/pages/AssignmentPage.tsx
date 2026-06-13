@@ -9,7 +9,7 @@
  * 4. Remove faculty from committees
  */
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Committee, CommitteeMember, defaultSettings } from '../../shared/types';
 import { AppStateContextValue } from '../hooks/useAppState';
 
@@ -179,12 +179,51 @@ const AssignmentPage: React.FC<AssignmentPageProps> = ({ appState, onComplete })
   // Track sorting and filtering options
   const [facultySort, setFacultySort] = useState<'last-name' | 'first-name' | 'college'>('last-name');
   const [preferenceFilter, setPreferenceFilter] = useState<string>('all'); // Committee ID or 'all'
+  // Free-text search over the faculty list
+  const [facultySearch, setFacultySearch] = useState('');
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  // IDs of committees whose member lists are collapsed (accordion)
+  const [collapsedCommittees, setCollapsedCommittees] = useState<Set<string>>(new Set());
   // Filter the faculty list by service status. Defaults to 'wants' (only faculty
   // who want service), but can be switched to 'all' to show everyone — including
   // exempt and opted-out faculty — so they can still be assigned (e.g. to elected
   // committees).
   const [statusFilter, setStatusFilter] = useState<'wants' | 'exempt' | 'opted-out' | 'all'>('wants');
   const [committeeSort, setCommitteeSort] = useState<'name' | 'size'>('name');
+
+  // Ctrl+F (Cmd+F on Mac) focuses the faculty search box, like other programs.
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+        searchInputRef.current?.select();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Toggle a single committee's collapsed state
+  const toggleCommitteeCollapsed = (committeeId: string) => {
+    setCollapsedCommittees((prev) => {
+      const next = new Set(prev);
+      if (next.has(committeeId)) {
+        next.delete(committeeId);
+      } else {
+        next.add(committeeId);
+      }
+      return next;
+    });
+  };
+
+  const collapseAllCommittees = () => {
+    setCollapsedCommittees(new Set(appState.state.committees.map((c) => c.id)));
+  };
+
+  const expandAllCommittees = () => {
+    setCollapsedCommittees(new Set());
+  };
 
   // Project settings (roles, service years), with defaults as a fallback
   const settings = appState.state.settings || defaultSettings();
@@ -209,6 +248,23 @@ const AssignmentPage: React.FC<AssignmentPageProps> = ({ appState, onComplete })
         );
       })
     );
+  }
+
+  // Filter by the free-text search (name, college, or committee preference)
+  const searchQuery = facultySearch.trim().toLowerCase();
+  if (searchQuery) {
+    unassignedFaculty = unassignedFaculty.filter((faculty) => {
+      const haystack = [
+        faculty.firstName,
+        faculty.lastName,
+        `${faculty.firstName} ${faculty.lastName}`,
+        faculty.college,
+        ...faculty.preferences.map((p) => p.committeeName),
+      ]
+        .join(' ')
+        .toLowerCase();
+      return haystack.includes(searchQuery);
+    });
   }
 
   // Sort faculty based on selected sort option
@@ -303,6 +359,25 @@ const AssignmentPage: React.FC<AssignmentPageProps> = ({ appState, onComplete })
               Faculty to Assign ({unassignedFaculty.length})
             </h3>
             <div className="space-y-2">
+              <div className="relative">
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  value={facultySearch}
+                  onChange={(e) => setFacultySearch(e.target.value)}
+                  placeholder="Search faculty (Ctrl+F)"
+                  className="w-full px-2 py-1 pr-7 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-sm text-gray-800 dark:text-white"
+                />
+                {facultySearch && (
+                  <button
+                    onClick={() => setFacultySearch('')}
+                    aria-label="Clear search"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-sm"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
               <select
                 value={facultySort}
                 onChange={(e) => setFacultySort(e.target.value as typeof facultySort)}
@@ -342,7 +417,7 @@ const AssignmentPage: React.FC<AssignmentPageProps> = ({ appState, onComplete })
               All faculty have been assigned or opted out!
             </div>
           ) : (
-            <div className="max-h-[500px] overflow-y-auto">
+            <div className="h-[500px] min-h-[200px] resize-y overflow-y-auto">
               {unassignedFaculty.map((faculty) => {
                 // How many committees this person is already on, used for the
                 // count badge and the purple "multi-committee" highlight.
@@ -458,22 +533,47 @@ const AssignmentPage: React.FC<AssignmentPageProps> = ({ appState, onComplete })
                   <option value="name">Sort: Name (A-Z)</option>
                   <option value="size">Sort: Size (smallest first)</option>
                 </select>
+                <div className="flex gap-2 mt-2">
+                  <button
+                    onClick={collapseAllCommittees}
+                    className="flex-1 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-xs text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600"
+                  >
+                    Collapse all
+                  </button>
+                  <button
+                    onClick={expandAllCommittees}
+                    className="flex-1 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-xs text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600"
+                  >
+                    Expand all
+                  </button>
+                </div>
               </div>
-              <div className="max-h-[500px] overflow-y-auto p-3 space-y-3">
-                {sortedCommittees.map((committee) => (
+              <div className="h-[500px] min-h-[200px] resize-y overflow-y-auto p-3 space-y-3">
+                {sortedCommittees.map((committee) => {
+                  const isCollapsed = collapsedCommittees.has(committee.id);
+                  return (
                   <div
                     key={committee.id}
                     className="bg-white dark:bg-gray-800 rounded-lg border-2 border-gray-200 dark:border-gray-700 p-4"
                   >
-                    {/* Committee Header */}
-                    <div className="mb-3">
-                      <h4 className="font-semibold text-gray-800 dark:text-white">
-                        {committee.name}
-                      </h4>
-                      <span className="text-xs text-gray-600 dark:text-gray-400">
+                    {/* Committee Header (click to collapse/expand members) */}
+                    <button
+                      onClick={() => toggleCommitteeCollapsed(committee.id)}
+                      className="w-full flex items-center justify-between mb-3 text-left"
+                      title={isCollapsed ? 'Show members' : 'Hide members'}
+                    >
+                      <span className="flex items-center gap-2 min-w-0">
+                        <span className="text-gray-500 dark:text-gray-400 text-xs">
+                          {isCollapsed ? '▶' : '▼'}
+                        </span>
+                        <span className="font-semibold text-gray-800 dark:text-white truncate">
+                          {committee.name}
+                        </span>
+                      </span>
+                      <span className="text-xs text-gray-600 dark:text-gray-400 flex-shrink-0 ml-2">
                         {committee.members.length} member{committee.members.length !== 1 ? 's' : ''}
                       </span>
-                    </div>
+                    </button>
 
                     {/* Assign Button */}
                     <button
@@ -488,14 +588,15 @@ const AssignmentPage: React.FC<AssignmentPageProps> = ({ appState, onComplete })
                       Assign Selected
                     </button>
 
-                    {/* Members List */}
-                    {committee.members.length === 0 ? (
-                      <div className="text-xs text-gray-500 dark:text-gray-400 py-3 text-center">
-                        No members
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        {committee.members.map((member) => {
+                    {/* Members List (hidden when this committee is collapsed) */}
+                    {!isCollapsed &&
+                      (committee.members.length === 0 ? (
+                        <div className="text-xs text-gray-500 dark:text-gray-400 py-3 text-center">
+                          No members
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {committee.members.map((member) => {
                           const faculty = appState.getFacultyById(member.facultyId);
                           return (
                             <div
@@ -530,11 +631,12 @@ const AssignmentPage: React.FC<AssignmentPageProps> = ({ appState, onComplete })
                               </div>
                             </div>
                           );
-                        })}
-                      </div>
-                    )}
+                          })}
+                        </div>
+                      ))}
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </>
           )}

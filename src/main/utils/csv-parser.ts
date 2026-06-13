@@ -161,7 +161,6 @@ export function parseQualtricsCsv(csvContent: string): ImportResult {
         id,
         firstName,
         lastName,
-        email: '', // Emails not needed - can be looked up from university directory if needed
         college,
         optOutStatus,
         optOutReason,

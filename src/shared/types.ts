@@ -14,10 +14,9 @@ export interface Faculty {
   // Unique identifier for this faculty member (typically firstname-lastname or UUID)
   id: string;
 
-  // Basic contact information
+  // Basic identifying information
   firstName: string;
   lastName: string;
-  email: string;
 
   // College/department information (used for filtering and organizational purposes)
   college: string;

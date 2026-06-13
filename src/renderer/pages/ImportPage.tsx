@@ -16,8 +16,156 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { Faculty } from '../../shared/types';
+import { Faculty, CommitteePreference } from '../../shared/types';
 import { AppStateContextValue } from '../hooks/useAppState';
+
+/**
+ * Modal for editing an existing faculty member's record.
+ * Used when faculty send revisions after the survey (status changes,
+ * corrected names/college, updated committee preferences, etc.).
+ */
+interface EditFacultyModalProps {
+  faculty: Faculty;
+  onSave: (updates: Partial<Faculty>) => void;
+  onClose: () => void;
+}
+
+const EditFacultyModal: React.FC<EditFacultyModalProps> = ({ faculty, onSave, onClose }) => {
+  const [firstName, setFirstName] = useState(faculty.firstName);
+  const [lastName, setLastName] = useState(faculty.lastName);
+  const [college, setCollege] = useState(faculty.college);
+  const [optOutStatus, setOptOutStatus] = useState<Faculty['optOutStatus']>(faculty.optOutStatus);
+  const [optOutReason, setOptOutReason] = useState(faculty.optOutReason);
+  const [comments, setComments] = useState(faculty.comments);
+  // Up to three committee preferences, edited as plain text fields
+  const [prefs, setPrefs] = useState<string[]>([
+    faculty.preferences[0]?.committeeName || '',
+    faculty.preferences[1]?.committeeName || '',
+    faculty.preferences[2]?.committeeName || '',
+  ]);
+
+  const setPref = (index: number, value: string) => {
+    setPrefs((prev) => prev.map((p, i) => (i === index ? value : p)));
+  };
+
+  const handleSave = () => {
+    // Rebuild the preferences list from the non-empty fields, re-ranking 1..3
+    const preferences: CommitteePreference[] = prefs
+      .map((name) => name.trim())
+      .filter((name) => name.length > 0)
+      .map((name, i) => ({ rank: (i + 1) as 1 | 2 | 3, committeeName: name }));
+
+    onSave({
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      college: college.trim(),
+      optOutStatus,
+      optOutReason: optOutReason.trim(),
+      comments,
+      preferences,
+    });
+    onClose();
+  };
+
+  const inputClass =
+    'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-800 dark:text-white';
+  const labelClass =
+    'block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1';
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-xl font-bold text-gray-800 dark:text-white">Edit Faculty</h3>
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xl"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className={labelClass}>First Name</label>
+              <input className={inputClass} value={firstName} onChange={(e) => setFirstName(e.target.value)} />
+            </div>
+            <div>
+              <label className={labelClass}>Last Name</label>
+              <input className={inputClass} value={lastName} onChange={(e) => setLastName(e.target.value)} />
+            </div>
+          </div>
+
+          <div>
+            <label className={labelClass}>College</label>
+            <input className={inputClass} value={college} onChange={(e) => setCollege(e.target.value)} />
+          </div>
+
+          <div>
+            <label className={labelClass}>Status</label>
+            <select
+              className={inputClass}
+              value={optOutStatus}
+              onChange={(e) => setOptOutStatus(e.target.value as Faculty['optOutStatus'])}
+            >
+              <option value="wants">Wants assignment</option>
+              <option value="exempt">Exempt</option>
+              <option value="opted-out">Opted out</option>
+            </select>
+          </div>
+
+          <div>
+            <label className={labelClass}>
+              Opt-out / Exempt reason <span className="font-normal text-gray-400">(optional)</span>
+            </label>
+            <input className={inputClass} value={optOutReason} onChange={(e) => setOptOutReason(e.target.value)} />
+          </div>
+
+          <div>
+            <label className={labelClass}>Committee Preferences</label>
+            <div className="space-y-2">
+              {prefs.map((value, i) => (
+                <input
+                  key={i}
+                  className={inputClass}
+                  value={value}
+                  onChange={(e) => setPref(i, e.target.value)}
+                  placeholder={`Preference ${i + 1} (committee name)`}
+                />
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className={labelClass}>Comments</label>
+            <textarea
+              className={`${inputClass} h-20 resize-y`}
+              value={comments}
+              onChange={(e) => setComments(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="flex gap-3 justify-end mt-6">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-white rounded hover:bg-gray-400 dark:hover:bg-gray-700"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSave}
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            Save Changes
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 /**
  * Component props
@@ -48,7 +196,6 @@ const ImportPage: React.FC<ImportPageProps> = ({ appState, onComplete }) => {
   const [newFacultyForm, setNewFacultyForm] = useState({
     firstName: '',
     lastName: '',
-    email: '',
     college: '',
   });
   // Search text used to filter the faculty list below
@@ -87,7 +234,6 @@ const ImportPage: React.FC<ImportPageProps> = ({ appState, onComplete }) => {
           f.lastName,
           `${f.firstName} ${f.lastName}`,
           f.college,
-          f.email,
           statusLabel,
           ...f.preferences.map((p) => p.committeeName),
         ]
@@ -203,7 +349,6 @@ const ImportPage: React.FC<ImportPageProps> = ({ appState, onComplete }) => {
       id: facultyId,
       firstName: newFacultyForm.firstName,
       lastName: newFacultyForm.lastName,
-      email: newFacultyForm.email || 'not@provided.edu',
       college: newFacultyForm.college || 'Unknown',
       optOutStatus: 'wants',
       optOutReason: '',
@@ -216,7 +361,6 @@ const ImportPage: React.FC<ImportPageProps> = ({ appState, onComplete }) => {
     setNewFacultyForm({
       firstName: '',
       lastName: '',
-      email: '',
       college: '',
     });
   };
@@ -296,7 +440,7 @@ const ImportPage: React.FC<ImportPageProps> = ({ appState, onComplete }) => {
         <h3 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">
           Add Faculty Manually
         </h3>
-        <div className="grid grid-cols-2 gap-4 mb-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
           <input
             type="text"
             placeholder="First Name"
@@ -312,15 +456,6 @@ const ImportPage: React.FC<ImportPageProps> = ({ appState, onComplete }) => {
             value={newFacultyForm.lastName}
             onChange={(e) =>
               setNewFacultyForm({ ...newFacultyForm, lastName: e.target.value })
-            }
-            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-800 dark:text-white"
-          />
-          <input
-            type="email"
-            placeholder="Email"
-            value={newFacultyForm.email}
-            onChange={(e) =>
-              setNewFacultyForm({ ...newFacultyForm, email: e.target.value })
             }
             className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-800 dark:text-white"
           />
@@ -436,12 +571,20 @@ const ImportPage: React.FC<ImportPageProps> = ({ appState, onComplete }) => {
                         : 'None'}
                     </td>
                     <td className="px-6 py-4 text-sm">
-                      <button
-                        onClick={() => handleRemoveFaculty(faculty.id)}
-                        className="text-red-600 hover:text-red-800 font-semibold"
-                      >
-                        Remove
-                      </button>
+                      <div className="flex gap-3">
+                        <button
+                          onClick={() => setEditingFacultyId(faculty.id)}
+                          className="text-blue-600 hover:text-blue-800 font-semibold"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleRemoveFaculty(faculty.id)}
+                          className="text-red-600 hover:text-red-800 font-semibold"
+                        >
+                          Remove
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -450,6 +593,20 @@ const ImportPage: React.FC<ImportPageProps> = ({ appState, onComplete }) => {
           </div>
         )}
       </div>
+
+      {/* Edit Faculty Modal */}
+      {editingFacultyId && appState.getFacultyById(editingFacultyId) && (
+        <EditFacultyModal
+          faculty={appState.getFacultyById(editingFacultyId)!}
+          onSave={(updates) => {
+            appState.updateFaculty(editingFacultyId, updates);
+            setImportSuccess(
+              `Updated ${updates.firstName || ''} ${updates.lastName || ''}`.trim()
+            );
+          }}
+          onClose={() => setEditingFacultyId(null)}
+        />
+      )}
 
       {/* Continue Button */}
       <div className="flex justify-end">

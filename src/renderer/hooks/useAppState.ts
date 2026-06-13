@@ -34,6 +34,12 @@ function normalizeState(state: ProjectState): ProjectState {
   const base = defaultSettings();
   return {
     ...state,
+    // Drop the legacy `email` field if present in an older saved file, so it
+    // disappears from the data once the project is re-saved.
+    faculty: (state.faculty || []).map((f) => {
+      const { email, ...rest } = f as Faculty & { email?: string };
+      return rest;
+    }),
     settings: {
       serviceYears:
         state.settings?.serviceYears && state.settings.serviceYears.length > 0
