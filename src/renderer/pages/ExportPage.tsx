@@ -93,12 +93,24 @@ const ExportPage: React.FC<ExportPageProps> = ({ appState }) => {
   /**
    * Calculate statistics for summary
    */
+  // Set of every faculty member assigned to at least one committee (any status)
+  const assignedIds = new Set(
+    appState.state.committees.flatMap((c) => c.members.map((m) => m.facultyId))
+  );
+
   const stats = {
     totalFaculty: appState.state.faculty.length,
+    // How many faculty want service (for reference)
     wantingAssignment: appState.state.faculty.filter((f) => f.optOutStatus === 'wants').length,
-    assigned: new Set(
-      appState.state.committees.flatMap((c) => c.members.map((m) => m.facultyId))
-    ).size,
+    // Distinct faculty placed on at least one committee
+    assigned: assignedIds.size,
+    // Faculty who want service but are not yet on any committee. (Note: we do
+    // NOT compute this as wanting − assigned, because "assigned" includes
+    // exempt/opted-out faculty who were placed on committees, which would make
+    // the number go negative.)
+    unassigned: appState.state.faculty.filter(
+      (f) => f.optOutStatus === 'wants' && !assignedIds.has(f.id)
+    ).length,
     totalCommittees: appState.state.committees.length,
     openPositions: appState.state.committees.reduce(
       (sum, c) => sum + (c.members.length > 0 ? 0 : 1),
@@ -136,9 +148,9 @@ const ExportPage: React.FC<ExportPageProps> = ({ appState }) => {
 
         <div className="bg-yellow-50 dark:bg-yellow-900 p-4 rounded-lg border border-yellow-200 dark:border-yellow-700">
           <div className="text-3xl font-bold text-yellow-600 dark:text-yellow-300">
-            {stats.wantingAssignment - stats.assigned}
+            {stats.unassigned}
           </div>
-          <div className="text-sm text-gray-600 dark:text-gray-400">Unassigned</div>
+          <div className="text-sm text-gray-600 dark:text-gray-400">Unassigned (want service)</div>
         </div>
 
         <div className="bg-purple-50 dark:bg-purple-900 p-4 rounded-lg border border-purple-200 dark:border-purple-700">
