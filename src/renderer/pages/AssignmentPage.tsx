@@ -161,10 +161,20 @@ const AssignmentPage: React.FC<AssignmentPageProps> = ({ appState, onComplete })
   // Track sorting and filtering options
   const [facultySort, setFacultySort] = useState<'last-name' | 'first-name' | 'college'>('last-name');
   const [preferenceFilter, setPreferenceFilter] = useState<string>('all'); // Committee ID or 'all'
+  // Filter the faculty list by service status. Defaults to 'wants' (only faculty
+  // who want service), but can be switched to 'all' to show everyone — including
+  // exempt and opted-out faculty — so they can still be assigned (e.g. to elected
+  // committees).
+  const [statusFilter, setStatusFilter] = useState<'wants' | 'exempt' | 'opted-out' | 'all'>('wants');
   const [committeeSort, setCommitteeSort] = useState<'name' | 'size'>('name');
 
-  // Get unassigned faculty
+  // Get unassigned faculty (all statuses)
   let unassignedFaculty = appState.getUnassignedFaculty();
+
+  // Filter by service status unless "all" is selected
+  if (statusFilter !== 'all') {
+    unassignedFaculty = unassignedFaculty.filter((f) => f.optOutStatus === statusFilter);
+  }
 
   // Filter by committee preference if selected
   if (preferenceFilter !== 'all') {
@@ -278,6 +288,16 @@ const AssignmentPage: React.FC<AssignmentPageProps> = ({ appState, onComplete })
                 <option value="college">Sort: College</option>
               </select>
               <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
+                className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-sm text-gray-800 dark:text-white"
+              >
+                <option value="wants">Status: Available (wants service)</option>
+                <option value="all">Status: All faculty (incl. exempt / opted-out)</option>
+                <option value="exempt">Status: Exempt only</option>
+                <option value="opted-out">Status: Opted out only</option>
+              </select>
+              <select
                 value={preferenceFilter}
                 onChange={(e) => setPreferenceFilter(e.target.value)}
                 className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-sm text-gray-800 dark:text-white"
@@ -318,6 +338,12 @@ const AssignmentPage: React.FC<AssignmentPageProps> = ({ appState, onComplete })
                     <div className="text-sm text-gray-600 dark:text-gray-400">
                       {faculty.college}
                     </div>
+                    {faculty.optOutStatus !== 'wants' && (
+                      <div className="text-xs font-semibold text-amber-600 dark:text-amber-400 mt-1">
+                        {faculty.optOutStatus === 'exempt' ? 'Exempt' : 'Opted out'}
+                        {faculty.optOutReason ? ` — ${faculty.optOutReason}` : ''}
+                      </div>
+                    )}
                     {faculty.preferences.length > 0 && (
                       <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">
                         Prefers: {faculty.preferences.map((p) => p.committeeName).join(', ')}

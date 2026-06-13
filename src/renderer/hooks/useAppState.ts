@@ -52,6 +52,7 @@ export interface AppStateContextValue {
 
   // Query operations
   getFacultyById: (facultyId: string) => Faculty | undefined;
+  // Returns all faculty not yet assigned to a committee, regardless of status.
   getUnassignedFaculty: () => Faculty[];
   getCommitteesByFacultyId: (facultyId: string) => Committee[];
 }
@@ -285,8 +286,12 @@ export function useAppState(
   );
 
   /**
-   * Get list of faculty who haven't been assigned to any committee
-   * Excludes faculty who opted out or are exempt
+   * Get list of faculty who haven't been assigned to any committee yet.
+   *
+   * This returns ALL unassigned faculty regardless of opt-out/exempt status.
+   * Status-based filtering (e.g. showing only faculty who want service) is
+   * handled in the UI so that exempt or opted-out faculty can still be assigned
+   * when needed — for example, when placing faculty on elected committees.
    */
   const getUnassignedFaculty = useCallback(() => {
     // Get IDs of all faculty on any committee
@@ -297,10 +302,8 @@ export function useAppState(
       });
     });
 
-    // Return faculty who want service and aren't assigned yet
-    return state.faculty.filter(
-      (f) => f.optOutStatus === 'wants' && !assignedIds.has(f.id)
-    );
+    // Return everyone who isn't assigned yet, regardless of status
+    return state.faculty.filter((f) => !assignedIds.has(f.id));
   }, [state.faculty, state.committees]);
 
   /**
